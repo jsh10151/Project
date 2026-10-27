@@ -1,0 +1,52 @@
+name: spacepick-production
+services:
+  db:
+    image: mysql:8.4
+    environment:
+      MYSQL_DATABASE: spacepick
+      MYSQL_USER: spacepick
+      MYSQL_PASSWORD: ${DB_PASSWORD:?Set DB_PASSWORD}
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD:?Set MYSQL_ROOT_PASSWORD}
+    command: ["--default-time-zone=+00:00"]
+    volumes: ["production_db:/var/lib/mysql"]
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD-SHELL", "mysqladmin ping -h localhost -u root -p$$MYSQL_ROOT_PASSWORD --silent"]
+      interval: 5s
+      retries: 30
+  backend:
+    build: ./backend
+    environment:
+      SPRING_PROFILES_ACTIVE: operations
+      DB_URL: jdbc:mysql://db:3306/spacepick?connectionTimeZone=UTC&forceConnectionTimeZoneToSession=true
+      DB_PASSWORD: ${DB_PASSWORD}
+      ADMIN_EMAIL: ${ADMIN_EMAIL}
+      ADMIN_PASSWORD: ${ADMIN_PASSWORD:?Set ADMIN_PASSWORD}
+      SECURE_COOKIES: 'true'
+      MANAGEMENT_ADDRESS: 0.0.0.0
+    depends_on:
+      db:
+        condition: service_healthy
+    restart: unless-stopped
+  frontend:
+    build: ./frontend
+    depends_on: [backend]
+    restart: unless-stopped
+  proxy:
+    image: caddy:2-alpine
+    environment:
+      SITE_DOMAIN: ${SITE_DOMAIN:?Set SITE_DOMAIN}
+    ports: ['80:80','443:443','443:443/udp']
+    volumes: ['./deploy/Caddyfile:/etc/caddy/Caddyfile:ro','caddy_data:/data','caddy_config:/config']
+    depends_on: [frontend]
+    restart: unless-stopped
+  prometheus:
+    image: prom/prometheus:v3.2.1
+    volumes: ['./deploy/prometheus.yml:/etc/prometheus/prometheus.yml:ro','metrics_data:/prometheus']
+    depends_on: [backend]
+    restart: unless-stopped
+volumes:
+  production_db:
+  caddy_data:
+  caddy_config:
+  metrics_data:

@@ -1,0 +1,10 @@
+.env
+.gradle/
+**/build/
+**/node_modules/
+**/dist/
+*.tsbuildinfo
+*.log
+
+backups/
+.env.production

@@ -1,0 +1,12 @@
+import fs from 'node:fs';
+import ts from 'typescript';
+import assert from 'node:assert/strict';
+const source=fs.readFileSync(new URL('../src/navigation.ts',import.meta.url),'utf8');
+const js=ts.transpileModule(source,{compilerOptions:{target:ts.ScriptTarget.ES2022,module:ts.ModuleKind.ES2022}}).outputText;
+const {cleanPaymentUrl}=await import('data:text/javascript;base64,'+Buffer.from(js).toString('base64'));
+assert.equal(cleanPaymentUrl(new URL('http://localhost/payment/success?orderId=sp_test&paymentKey=private&amount=80000#/my')),'/#/my');
+assert.equal(cleanPaymentUrl(new URL('http://localhost/payment/success?orderId=sp_test&paymentKey=private&amount=80000')),'/payment/success?orderId=sp_test#/payment-result');
+assert.equal(cleanPaymentUrl(new URL('http://localhost/payment/fail?orderId=sp_test&message=private')),'/payment/fail?orderId=sp_test#/payment-result');
+assert.equal(cleanPaymentUrl(new URL('http://localhost/payment/success?orderId=sp_test#/payment-result')),'/payment/success?orderId=sp_test#/payment-result');
+assert.equal(cleanPaymentUrl(new URL('http://localhost/#/space/5')),null);
+console.log('PASS: 5 payment URL cleanup regression cases');

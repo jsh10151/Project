@@ -1,0 +1,17 @@
+CREATE TABLE payment_orders (
+ order_id VARCHAR(64) PRIMARY KEY,
+ booking_id BIGINT NOT NULL UNIQUE,
+ member_id BIGINT NOT NULL,
+ amount INT NOT NULL,
+ state VARCHAR(20) NOT NULL,
+ payment_key VARCHAR(200) NULL UNIQUE,
+ customer_key VARCHAR(64) NOT NULL,
+ expires_at DATETIME(6) NOT NULL,
+ created_at DATETIME(6) NOT NULL DEFAULT CURRENT_TIMESTAMP(6),
+ updated_at DATETIME(6) NOT NULL DEFAULT CURRENT_TIMESTAMP(6) ON UPDATE CURRENT_TIMESTAMP(6),
+ FOREIGN KEY(booking_id) REFERENCES bookings(id),
+ FOREIGN KEY(member_id) REFERENCES members(id),
+ CHECK(amount>0),
+ CHECK(state IN ('PENDING','CONFIRMING','PAID','REFUNDING','REFUNDED','CANCELLED')),
+ INDEX idx_payment_member(member_id,created_at)
+);
